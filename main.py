@@ -51,9 +51,9 @@ GROQ_TEXT_MODELS: List[str] = [
 ]
 
 # Selectable Gemini image generation models shown in the dropdown.
-# gemini-2.5-flash-image (Nano Banana) is the one available on the free tier.
+# gemini-3-flash-preview (Nano Banana) is the one available on the free tier.
 GEMINI_IMAGE_MODELS: List[str] = [
-    "gemini-2.5-flash-image",
+    "gemini-3-flash-preview",
     "gemini-3.1-flash-image-preview",
     "gemini-3-pro-image-preview",
 ]
