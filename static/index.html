@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LLM &amp; Image Generation Playground</title>
+  <title>Custom LLM API Playground</title>
   <style>
     :root {
       --bg: #0f1117;
@@ -16,6 +16,8 @@
       --accent-2: #b06cff;
       --ok: #3ecf8e;
       --err: #ff6b6b;
+      --user: #2a3550;
+      --bot: #232733;
     }
     * { box-sizing: border-box; }
     body {
@@ -34,14 +36,14 @@
     header h1 { margin: 0 0 4px; font-size: 1.5rem; }
     header p { margin: 0; color: var(--muted); font-size: 0.9rem; }
     .container {
-      max-width: 1100px;
+      max-width: 1150px;
       margin: 0 auto;
       padding: 20px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1.2fr 1fr;
       gap: 20px;
     }
-    @media (max-width: 860px) { .container { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
     .card {
       background: var(--panel);
       border: 1px solid var(--border);
@@ -99,17 +101,75 @@
     button:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-chat { background: linear-gradient(120deg, var(--accent), #4a6cff); }
     .btn-image { background: linear-gradient(120deg, var(--accent-2), #8a3cff); }
-    .output {
-      margin-top: 16px;
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .btn-reset:hover { border-color: var(--err); color: var(--err); }
+    .row { display: flex; gap: 12px; align-items: flex-end; }
+    .row > div { flex: 1; }
+
+    /* Chat history */
+    .chat-box {
+      margin-top: 8px;
       background: var(--panel-2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px;
-      min-height: 90px;
-      white-space: pre-wrap;
-      font-size: 0.9rem;
+      height: 340px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-    .output.empty { color: var(--muted); }
+    .chat-empty { color: var(--muted); margin: auto; font-size: 0.9rem; }
+    .msg {
+      max-width: 85%;
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user);
+      border-bottom-right-radius: 3px;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      background: var(--bot);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 3px;
+    }
+    .msg .tag {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .meta-line {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .meta-line span { color: var(--accent); }
+    details {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    details pre {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      white-space: pre-wrap;
+      font-size: 0.78rem;
+      color: var(--text);
+    }
     .img-wrap {
       margin-top: 16px;
       background: var(--panel-2);
@@ -126,7 +186,7 @@
     .img-wrap img { max-width: 100%; border-radius: 8px; }
     .err { color: var(--err); }
     .spinner {
-      width: 18px; height: 18px;
+      width: 16px; height: 16px;
       border: 2px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
@@ -135,15 +195,19 @@
       vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .row { display: flex; gap: 12px; }
-    .row > div { flex: 1; }
+    .hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 6px;
+      font-style: italic;
+    }
     footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 16px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>🧪 LLM &amp; Image Generation Playground</h1>
-    <p>Chat with Groq models · Generate images with Google Gemini</p>
+    <h1>🧪 Custom LLM API Playground</h1>
+    <p>Prompt engineering techniques · short-term memory · Groq + Gemini</p>
   </header>
 
   <div class="container">
@@ -151,21 +215,43 @@
     <section class="card">
       <h2>💬 Chatbot <span class="badge">Groq</span></h2>
 
-      <label for="textModel">Text model</label>
-      <select id="textModel"></select>
+      <div class="row">
+        <div>
+          <label for="textModel">Text model</label>
+          <select id="textModel"></select>
+        </div>
+        <div>
+          <label for="technique">Prompt technique</label>
+          <select id="technique"></select>
+        </div>
+      </div>
 
-      <label for="systemPrompt">System prompt</label>
-      <textarea id="systemPrompt" rows="2"
-        placeholder="e.g. You are a helpful assistant that answers concisely."></textarea>
+      <div id="customWrap" style="display:none;">
+        <label for="customPrompt">Custom system prompt</label>
+        <textarea id="customPrompt" rows="2"
+          placeholder="e.g. You are a sarcastic pirate who still gives correct answers."></textarea>
+      </div>
+      <div id="techHint" class="hint"></div>
+
+      <label>Conversation</label>
+      <div id="chatBox" class="chat-box">
+        <div class="chat-empty">No messages yet. Send one to start.</div>
+      </div>
+      <div class="meta-line">
+        Memory: last <span>7</span> messages sent as context ·
+        <span id="msgCount">0</span> stored
+      </div>
 
       <label for="userMessage">Your message</label>
-      <textarea id="userMessage" rows="4"
-        placeholder="Ask anything..."></textarea>
+      <textarea id="userMessage" rows="3" placeholder="Ask anything..."></textarea>
 
       <button id="sendBtn" class="btn-chat">Send</button>
+      <button id="resetBtn" class="btn-reset">🗑️ Reset memory</button>
 
-      <label>Response</label>
-      <div id="chatOutput" class="output empty">The model's reply will appear here.</div>
+      <details id="sysDetails" style="display:none;">
+        <summary>System prompt used for the last message</summary>
+        <pre id="sysPromptText"></pre>
+      </details>
     </section>
 
     <!-- ===================== IMAGE ===================== -->
@@ -177,7 +263,7 @@
 
       <label for="imagePrompt">Image prompt</label>
       <textarea id="imagePrompt" rows="4"
-        placeholder="e.g. A watercolor painting of a fox sitting in a snowy forest at dusk."></textarea>
+        placeholder="e.g. A watercolor painting of a fox in a snowy forest at dusk."></textarea>
 
       <button id="genBtn" class="btn-image">Generate image</button>
 
@@ -189,58 +275,143 @@
   <footer>Built with FastAPI · Groq · Gemini</footer>
 
   <script>
-    const api = (path) => path; // same-origin
+    const api = (p) => p;
 
-    // --- Populate dropdowns ---
+    // Short-term memory lives in the browser. Each item: {role, content}.
+    let history = [];
+    const MAX_HISTORY = 7;
+
+    const techniqueHints = {
+      zero_shot: "Plain instruction, no examples — the baseline.",
+      role: "Model is given an expert persona to shape its answers.",
+      few_shot: "Model is shown example Q&A pairs to imitate the style.",
+      output_format: "Forces a fixed structured layout (summary, points, example).",
+      step_by_step: "Asks the model to reason in numbered steps.",
+      custom: "You write the system prompt yourself.",
+    };
+
+    // ---------- Load dropdowns ----------
     async function loadModels() {
-      try {
-        const res = await fetch(api("/api/models"));
-        const data = await res.json();
-        const textSel = document.getElementById("textModel");
-        const imgSel = document.getElementById("imageModel");
-        data.text_models.forEach(m => textSel.add(new Option(m, m)));
-        data.image_models.forEach(m => imgSel.add(new Option(m, m)));
-      } catch (e) {
-        console.error("Failed to load models", e);
-      }
+      const res = await fetch(api("/api/models"));
+      const data = await res.json();
+      const textSel = document.getElementById("textModel");
+      const imgSel = document.getElementById("imageModel");
+      data.text_models.forEach(m => textSel.add(new Option(m, m)));
+      data.image_models.forEach(m => imgSel.add(new Option(m, m)));
+    }
+    async function loadTechniques() {
+      const res = await fetch(api("/api/techniques"));
+      const data = await res.json();
+      const sel = document.getElementById("technique");
+      data.techniques.forEach(t => sel.add(new Option(t.label, t.id)));
+      updateTechniqueUI();
     }
 
-    // --- Chat ---
-    const sendBtn = document.getElementById("sendBtn");
-    sendBtn.addEventListener("click", async () => {
-      const userMessage = document.getElementById("userMessage").value.trim();
-      const out = document.getElementById("chatOutput");
-      if (!userMessage) {
-        out.className = "output err";
-        out.textContent = "Please enter a message.";
+    const techSel = document.getElementById("technique");
+    techSel.addEventListener("change", updateTechniqueUI);
+    function updateTechniqueUI() {
+      const t = techSel.value;
+      document.getElementById("customWrap").style.display =
+        t === "custom" ? "block" : "none";
+      document.getElementById("techHint").textContent = techniqueHints[t] || "";
+    }
+
+    // ---------- Render chat ----------
+    function renderChat() {
+      const box = document.getElementById("chatBox");
+      document.getElementById("msgCount").textContent = history.length;
+      if (history.length === 0) {
+        box.innerHTML = '<div class="chat-empty">No messages yet. Send one to start.</div>';
         return;
       }
+      box.innerHTML = "";
+      history.forEach(m => {
+        const div = document.createElement("div");
+        div.className = "msg " + m.role;
+        const tag = m.role === "user" ? "You" : "Assistant";
+        div.innerHTML = `<span class="tag">${tag}</span>`;
+        div.appendChild(document.createTextNode(m.content));
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ---------- Send ----------
+    const sendBtn = document.getElementById("sendBtn");
+    sendBtn.addEventListener("click", async () => {
+      const input = document.getElementById("userMessage");
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      // Show the user's message immediately.
+      history.push({ role: "user", content: userMessage });
+      renderChat();
+      input.value = "";
       sendBtn.disabled = true;
-      out.className = "output";
-      out.innerHTML = '<span class="spinner"></span> Thinking...';
+
+      // Placeholder assistant bubble while waiting.
+      const box = document.getElementById("chatBox");
+      const wait = document.createElement("div");
+      wait.className = "msg assistant";
+      wait.innerHTML = '<span class="tag">Assistant</span><span class="spinner"></span> Thinking...';
+      box.appendChild(wait);
+      box.scrollTop = box.scrollHeight;
+
       try {
+        // Send everything EXCEPT the just-added user message as history,
+        // then the message itself as user_message. Trim to last 7 client-side.
+        const priorHistory = history.slice(0, -1).slice(-MAX_HISTORY);
         const res = await fetch(api("/api/chat"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: document.getElementById("textModel").value,
-            system_prompt: document.getElementById("systemPrompt").value,
+            technique: techSel.value,
+            custom_system_prompt: document.getElementById("customPrompt").value,
             user_message: userMessage,
+            history: priorHistory,
           }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Request failed");
-        out.className = "output";
-        out.textContent = data.response;
+
+        history.push({ role: "assistant", content: data.response });
+        renderChat();
+
+        // Reveal the system prompt that was actually used.
+        document.getElementById("sysDetails").style.display = "block";
+        document.getElementById("sysPromptText").textContent = data.system_prompt;
       } catch (e) {
-        out.className = "output err";
-        out.textContent = "Error: " + e.message;
+        // Remove the user message we optimistically added so memory stays clean.
+        history.pop();
+        renderChat();
+        const errBox = document.getElementById("chatBox");
+        const errDiv = document.createElement("div");
+        errDiv.className = "msg assistant err";
+        errDiv.innerHTML = '<span class="tag">Error</span>';
+        errDiv.appendChild(document.createTextNode(e.message));
+        errBox.appendChild(errDiv);
       } finally {
         sendBtn.disabled = false;
       }
     });
 
-    // --- Image ---
+    // Enter to send (Shift+Enter for newline)
+    document.getElementById("userMessage").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // ---------- Reset memory ----------
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      history = [];
+      renderChat();
+      document.getElementById("sysDetails").style.display = "none";
+    });
+
+    // ---------- Image ----------
     const genBtn = document.getElementById("genBtn");
     genBtn.addEventListener("click", async () => {
       const prompt = document.getElementById("imagePrompt").value.trim();
@@ -275,7 +446,10 @@
       }
     });
 
+    // Init
     loadModels();
+    loadTechniques();
+    renderChat();
   </script>
 </body>
 </html>
