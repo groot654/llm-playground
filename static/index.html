@@ -354,12 +354,12 @@
     // ---------- Particle orb (crystal dotted sphere) ----------
     // A canvas sphere built from points on a Fibonacci lattice, shaded like a
     // faceted crystal (bright white front glints + a glassy specular highlight).
-    // It rotates slowly and calmly at all times. The thinking/energized state
-    // is intentionally disabled, so setThinking() is a no-op kept only so the
-    // call sites stay tidy; the orb never speeds up or shimmers on a request.
+    // It rotates slowly while idle; setThinking(true) ramps a shared "energy"
+    // value so every orb spins faster, breathes and shimmers — a machine-
+    // thinking feel — then setThinking(false) eases it back to calm.
     let orbEnergy = 0;        // current 0..1 (eased, shared by all orbs)
-    let orbTarget = 0;        // target  0..1 — kept at 0 (always idle)
-    function setThinking() { /* thinking animation disabled */ }
+    let orbTarget = 0;        // target  0..1
+    function setThinking(on) { orbTarget = on ? 1 : 0; }
 
     const orbLoops = {};      // canvasId -> requestAnimationFrame handle
     function stopOrb(id) { if (orbLoops[id]) { cancelAnimationFrame(orbLoops[id]); delete orbLoops[id]; } }

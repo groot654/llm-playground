@@ -1,6 +1,6 @@
 """
 LLM Chat Playground
--------------------
+-------------------s
 A FastAPI backend that exposes:
   - /api/chat       -> chat completions via Groq
   - /api/models     -> list of selectable Groq text models

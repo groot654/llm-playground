@@ -28,9 +28,32 @@ TECHNIQUES: List[Dict[str, str]] = [
 
 VALID_TECHNIQUE_IDS = {t["id"] for t in TECHNIQUES}
 
+# Appended to every technique (except output_format, which is Markdown by
+# design) so the model replies in clean plain text. The front-end renders
+# answers as plain text, so any Markdown syntax would otherwise show up as
+# literal characters (**, #, backticks, etc.).
+PLAIN_TEXT_SUFFIX = (
+    " Respond in plain text only. Do not use any Markdown formatting: no "
+    "asterisks for bold or italics, no backticks or code fences, no '#' "
+    "headings, and no markdown bullet characters. Write in ordinary "
+    "sentences and paragraphs (plain numbered or dashed lists are fine)."
+)
+
 
 def build_system_prompt(technique: str, custom_text: str = "") -> str:
-    """Return the system prompt string for the chosen technique."""
+    """Return the system prompt string for the chosen technique.
+
+    A plain-text directive is appended to every technique except
+    output_format (which intentionally produces Markdown).
+    """
+    prompt = _base_system_prompt(technique, custom_text)
+    if technique != "output_format":
+        prompt += PLAIN_TEXT_SUFFIX
+    return prompt
+
+
+def _base_system_prompt(technique: str, custom_text: str = "") -> str:
+    """Return the raw system prompt for the chosen technique."""
 
     if technique == "zero_shot":
         # No examples, no persona — just a direct instruction. This is the
