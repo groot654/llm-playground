@@ -4,294 +4,325 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LLM Chat Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0b0d12;
-      --bg-elev: #12151d;
-      --panel: #161a24;
-      --panel-2: #1d222e;
-      --border: #272d3a;
-      --border-soft: #20252f;
-      --text: #e8eaf0;
-      --muted: #8b93a4;
-      --faint: #5b6376;
-      --accent: #6c8cff;
-      --accent-2: #8a7bff;
-      --accent-soft: rgba(108, 140, 255, 0.14);
-      --ok: #3ecf8e;
-      --err: #ff6b6b;
-      --user: #2c3a63;
-      --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-      --radius: 14px;
+      --bg-1: #c9bdf0;
+      --bg-2: #d9d0f3;
+      --bg-3: #eae4f8;
+      --shell: #ffffff;
+      --sidebar: #fcfbff;
+      --panel-2: #f5f2fc;
+      --border: #ece8f6;
+      --border-soft: #f3f0fa;
+      --text: #1f2330;
+      --muted: #837b99;
+      --faint: #aaa2c0;
+      --accent: #8b6cff;
+      --accent-2: #b39bff;
+      --accent-3: #cabbff;
+      --accent-soft: rgba(139, 108, 255, 0.10);
+      --accent-glow: rgba(139, 108, 255, 0.30);
+      --greet: #b7a6ec;
+      --dark: #16151c;
+      --ok: #45c98a;
+      --err: #f4607a;
+      --radius: 26px;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
       margin: 0;
+      overflow: hidden;
       font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background:
-        radial-gradient(1200px 600px at 80% -10%, rgba(138, 123, 255, 0.10), transparent 60%),
-        radial-gradient(1000px 500px at -10% 0%, rgba(108, 140, 255, 0.08), transparent 55%),
-        var(--bg);
       color: var(--text);
       line-height: 1.55;
       -webkit-font-smoothing: antialiased;
+      background:
+        radial-gradient(900px 600px at 78% 12%, rgba(255,255,255,0.55), transparent 55%),
+        radial-gradient(800px 700px at 10% 90%, rgba(255,255,255,0.35), transparent 55%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+      padding: 18px;
     }
 
-    .app {
-      max-width: 1180px;
+    /* ---------- Floating app shell ---------- */
+    .shell {
+      height: calc(100vh - 36px);
+      max-width: 1240px;
       margin: 0 auto;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      gap: 18px;
-    }
-
-    /* ---------- Top bar ---------- */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .logo {
-      width: 38px; height: 38px;
-      border-radius: 11px;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      display: grid; place-items: center;
-      font-size: 1.15rem;
-      box-shadow: 0 6px 16px rgba(108, 140, 255, 0.35);
-    }
-    .brand h1 { margin: 0; font-size: 1.12rem; font-weight: 650; letter-spacing: -0.01em; }
-    .brand p { margin: 0; font-size: 0.78rem; color: var(--muted); }
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-size: 0.76rem; color: var(--muted);
-      background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 6px 12px; border-radius: 999px;
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18); }
-
-    /* ---------- Layout ---------- */
-    .layout {
-      flex: 1;
       display: grid;
-      grid-template-columns: 290px 1fr;
-      gap: 18px;
+      grid-template-columns: 280px 1fr;
+      background: var(--shell);
+      border-radius: var(--radius);
+      box-shadow: 0 30px 80px rgba(80, 55, 160, 0.28);
+      overflow: hidden;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 20px 16px;
       min-height: 0;
     }
-    @media (max-width: 860px) {
-      .layout { grid-template-columns: 1fr; }
-      .chat-card { min-height: 60vh; }
+    .side-head { display: flex; align-items: center; gap: 10px; padding: 4px 6px 0; }
+    .side-logo {
+      width: 30px; height: 30px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center; color: #fff; font-size: 0.95rem; font-weight: 800;
+      box-shadow: 0 6px 14px var(--accent-glow);
     }
+    .side-head b { font-size: 1.02rem; font-weight: 700; letter-spacing: -0.01em; }
 
-    .panel {
-      background: linear-gradient(180deg, var(--panel), var(--bg-elev));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+    .new-chat {
+      margin: 18px 0 6px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 12px;
+      background: var(--dark); color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s, opacity 0.15s;
     }
+    .new-chat:hover { transform: translateY(-1px); opacity: 0.93; }
 
-    /* ---------- Settings sidebar ---------- */
-    .sidebar { padding: 18px; display: flex; flex-direction: column; gap: 6px; }
-    .sidebar .section-title {
-      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--faint); font-weight: 650; margin: 6px 0 2px;
+    .side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 6px 2px; margin: 6px -6px 0; }
+    .side-scroll::-webkit-scrollbar { width: 8px; }
+    .side-scroll::-webkit-scrollbar-thumb { background: var(--accent-3); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+
+    .section-title {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--faint); font-weight: 700; margin: 16px 2px 8px;
     }
-    label.field { display: block; font-size: 0.78rem; color: var(--muted); margin: 14px 0 6px; }
+    label.field { display: block; font-size: 0.76rem; color: var(--muted); margin: 12px 2px 6px; font-weight: 500; }
     select, textarea, input {
       width: 100%;
       background: var(--panel-2);
       color: var(--text);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 11px;
       padding: 10px 12px;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-family: inherit;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
-    select:hover, textarea:hover, input:hover { border-color: #333b4c; }
+    select:hover, textarea:hover, input:hover { border-color: var(--accent-3); }
     select:focus, textarea:focus, input:focus {
-      outline: none;
+      outline: none; background: #fff;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
+      box-shadow: 0 0 0 4px var(--accent-soft);
     }
     textarea { resize: vertical; }
     .hint {
-      font-size: 0.74rem; color: var(--muted);
-      margin-top: 8px; padding: 9px 11px;
+      font-size: 0.73rem; color: var(--muted);
+      margin-top: 10px; padding: 10px 12px;
       background: var(--accent-soft);
-      border: 1px solid rgba(108, 140, 255, 0.18);
-      border-radius: 9px;
+      border: 1px solid rgba(139, 108, 255, 0.16);
+      border-radius: 11px;
     }
 
-    .btn-reset {
-      margin-top: 18px;
-      width: 100%; padding: 10px;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: 10px; font-size: 0.84rem; font-weight: 550;
-      cursor: pointer; transition: all 0.15s;
+    .profile {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 12px; padding: 12px 8px 2px;
+      border-top: 1px solid var(--border);
     }
-    .btn-reset:hover { border-color: var(--err); color: var(--err); background: rgba(255, 107, 107, 0.06); }
+    .profile .pic {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      color: #fff; display: grid; place-items: center; font-size: 0.8rem; font-weight: 700;
+      flex: none;
+    }
+    .profile .who { min-width: 0; }
+    .profile .who b { display: block; font-size: 0.82rem; font-weight: 600; }
+    .profile .who span { display: block; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* ---------- Chat ---------- */
-    .chat-card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-    .chat-head {
+    /* ---------- Main column ---------- */
+    .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    .main-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px; border-bottom: 1px solid var(--border-soft);
+      padding: 16px 22px; border-bottom: 1px solid var(--border-soft);
     }
-    .chat-head h2 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+    .model-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.85rem; font-weight: 600; color: var(--text);
+      background: var(--panel-2); border: 1px solid var(--border);
+      padding: 7px 13px; border-radius: 10px;
+    }
+    .model-chip .pdot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    .top-right { display: flex; align-items: center; gap: 12px; }
     .mem-meta { font-size: 0.74rem; color: var(--muted); }
-    .mem-meta b { color: var(--accent); font-weight: 600; }
+    .mem-meta b { color: var(--accent); font-weight: 700; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.74rem; color: var(--muted); font-weight: 500;
+      background: var(--panel-2); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 999px;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(69, 201, 138, 0.18); }
 
+    /* ---------- Chat scroll ---------- */
     .chat-scroll {
       flex: 1; overflow-y: auto;
-      padding: 22px 18px;
+      padding: 22px 26px;
       display: flex; flex-direction: column; gap: 16px;
       scroll-behavior: smooth;
     }
     .chat-scroll::-webkit-scrollbar { width: 9px; }
-    .chat-scroll::-webkit-scrollbar-thumb { background: #2a3140; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: var(--accent-3); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
 
+    /* ---------- Empty state: orb + greeting + cards ---------- */
     .empty {
-      margin: auto; text-align: center; color: var(--faint); max-width: 340px;
+      margin: auto; text-align: center; width: 100%; max-width: 640px;
+      display: flex; flex-direction: column; align-items: center;
+      animation: fadeUp 0.6s ease;
     }
-    .empty .big { font-size: 2rem; margin-bottom: 8px; }
-    .empty p { margin: 4px 0; font-size: 0.9rem; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
-    .msg { display: flex; gap: 11px; max-width: 88%; }
+    .orb-wrap {
+      position: relative; width: 188px; height: 188px;
+      margin-bottom: 2px;
+      animation: orbFloat 6s ease-in-out infinite;
+    }
+    .orb-canvas { width: 100%; height: 100%; display: block; }
+    @keyframes orbFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+    /* small persistent orb shown in the header during a conversation */
+    .mini-orb { width: 36px; height: 36px; display: none; }
+    .mini-orb.show { display: block; }
+    .mini-orb canvas { width: 100%; height: 100%; display: block; }
+
+    .greet-1 { margin: 4px 0 0; font-size: 1.6rem; font-weight: 700; color: var(--greet); letter-spacing: -0.01em; }
+    .greet-2 { margin: 2px 0 0; font-size: 1.75rem; font-weight: 800; color: var(--dark); letter-spacing: -0.02em; }
+
+    /* ---------- Messages ---------- */
+    .msg { display: flex; gap: 11px; max-width: 86%; animation: fadeUp 0.3s ease; }
     .msg.user { align-self: flex-end; flex-direction: row-reverse; }
-    .avatar {
-      flex: none; width: 30px; height: 30px; border-radius: 9px;
-      display: grid; place-items: center; font-size: 0.82rem; font-weight: 600;
-    }
-    .msg.user .avatar { background: var(--user); color: #cdd8ff; }
-    .msg.assistant .avatar { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
-    .bubble {
-      padding: 11px 14px; border-radius: 13px;
-      font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word;
-    }
-    .msg.user .bubble { background: var(--user); border-bottom-right-radius: 4px; }
-    .msg.assistant .bubble { background: var(--panel-2); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-    .msg.error .avatar { background: rgba(255, 107, 107, 0.18); color: var(--err); }
-    .msg.error .bubble { border-color: rgba(255, 107, 107, 0.4); color: var(--err); }
+    .avatar { flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; }
+    .msg.user .avatar { background: var(--panel-2); color: var(--accent); }
+    .msg.assistant .avatar { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+    .bubble { padding: 12px 15px; border-radius: 15px; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word; }
+    .msg.user .bubble { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-bottom-right-radius: 5px; box-shadow: 0 6px 16px var(--accent-glow); }
+    .msg.assistant .bubble { background: var(--panel-2); border: 1px solid var(--border); border-bottom-left-radius: 5px; color: var(--text); }
+    .msg.error .avatar { background: rgba(244, 96, 122, 0.14); color: var(--err); }
+    .msg.error .bubble { background: rgba(244, 96, 122, 0.06); border: 1px solid rgba(244, 96, 122, 0.35); color: var(--err); }
 
-    .spinner {
-      width: 15px; height: 15px;
-      border: 2px solid var(--border); border-top-color: var(--accent);
-      border-radius: 50%; display: inline-block; vertical-align: -2px;
-      animation: spin 0.7s linear infinite;
-    }
+    .spinner { width: 15px; height: 15px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; display: inline-block; vertical-align: -2px; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ---------- Composer ---------- */
-    .composer { border-top: 1px solid var(--border-soft); padding: 14px 16px; }
+    .composer { padding: 14px 26px 20px; }
     .composer-inner {
-      display: flex; gap: 10px; align-items: flex-end;
       background: var(--panel-2); border: 1px solid var(--border);
-      border-radius: 12px; padding: 8px 8px 8px 14px;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      border-radius: 18px; padding: 12px 12px 10px 16px;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
-    .composer-inner:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-    .composer-inner textarea {
-      border: none; background: transparent; padding: 6px 0;
-      box-shadow: none; max-height: 160px;
+    .composer-inner:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); background: #fff; }
+    .composer-row { display: flex; gap: 10px; align-items: flex-end; }
+    .composer-row textarea {
+      border: none; background: transparent; padding: 4px 0;
+      box-shadow: none; max-height: 140px; font-size: 0.92rem;
     }
-    .composer-inner textarea:focus { box-shadow: none; border: none; }
+    .composer-row textarea:hover, .composer-row textarea:focus { border: none; box-shadow: none; background: transparent; }
     .send-btn {
-      flex: none; width: 40px; height: 40px; border: none; border-radius: 10px;
+      flex: none; width: 40px; height: 40px; border: none; border-radius: 12px;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
       color: #fff; font-size: 1.05rem; cursor: pointer;
-      display: grid; place-items: center;
-      transition: opacity 0.15s, transform 0.1s;
+      display: grid; place-items: center; box-shadow: 0 6px 16px var(--accent-glow);
+      transition: transform 0.1s, box-shadow 0.15s, opacity 0.15s;
     }
-    .send-btn:hover:not(:disabled) { transform: translateY(-1px); }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 22px var(--accent-glow); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
     .composer-foot {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 9px; font-size: 0.72rem; color: var(--faint);
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+      font-size: 0.74rem; color: var(--muted);
     }
-    .composer-foot a { color: var(--muted); cursor: pointer; text-decoration: none; }
-    .composer-foot a:hover { color: var(--accent); }
-
-    details summary { cursor: pointer; outline: none; }
+    .tech-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      color: var(--accent); background: var(--accent-soft);
+      border: 1px solid rgba(139,108,255,0.2); padding: 5px 11px; border-radius: 999px;
+      font-weight: 600;
+    }
+    details summary { cursor: pointer; outline: none; color: var(--muted); }
+    details summary:hover { color: var(--accent); }
     details pre {
-      background: var(--panel); border: 1px solid var(--border);
-      border-radius: 9px; padding: 10px; margin-top: 8px;
-      white-space: pre-wrap; font-size: 0.76rem; color: var(--muted);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 11px; padding: 11px; margin-top: 8px;
+      white-space: pre-wrap; font-size: 0.74rem; color: var(--muted);
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <!-- ===================== Top bar ===================== -->
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo">🧪</div>
-        <div>
-          <h1>LLM Chat Playground</h1>
-          <p>Prompt engineering &amp; short-term memory · powered by Groq</p>
-        </div>
+  <div class="shell">
+    <!-- ===================== Sidebar ===================== -->
+    <aside class="sidebar">
+      <div class="side-head">
+        <div class="side-logo">✦</div>
+        <b>LLM Playground</b>
       </div>
-      <div class="status-pill"><span class="dot"></span> Connected</div>
-    </div>
 
-    <!-- ===================== Layout ===================== -->
-    <div class="layout">
-      <!-- Settings sidebar -->
-      <aside class="panel sidebar">
+      <button id="resetBtn" class="new-chat">＋ New chat</button>
+
+      <div class="side-scroll">
         <div class="section-title">Model</div>
-        <label class="field" for="textModel">Text model</label>
         <select id="textModel"></select>
 
-        <div class="section-title" style="margin-top:20px;">Prompt technique</div>
-        <select id="technique" style="margin-top:6px;"></select>
+        <div class="section-title">Prompt technique</div>
+        <select id="technique"></select>
         <div id="customWrap" style="display:none;">
           <label class="field" for="customPrompt">Custom system prompt</label>
           <textarea id="customPrompt" rows="3"
             placeholder="e.g. You are a sarcastic pirate who still gives correct answers."></textarea>
         </div>
         <div id="techHint" class="hint"></div>
+      </div>
 
-        <button id="resetBtn" class="btn-reset">🗑️ Reset conversation</button>
-      </aside>
-
-      <!-- Chat -->
-      <section class="panel chat-card">
-        <div class="chat-head">
-          <h2>💬 Conversation</h2>
-          <span class="mem-meta">Memory: last <b>7</b> turns · <b id="msgCount">0</b> stored</span>
+      <div class="profile">
+        <div class="pic">R</div>
+        <div class="who">
+          <b>You</b>
+          <span>raufsarwer00@gmail.com</span>
         </div>
+      </div>
+    </aside>
 
-        <div id="chatScroll" class="chat-scroll">
-          <div class="empty" id="emptyState">
-            <div class="big">💬</div>
-            <p><strong>Start a conversation</strong></p>
-            <p>Pick a model and a prompt technique, then send a message.</p>
-          </div>
+    <!-- ===================== Main ===================== -->
+    <main class="main">
+      <div class="main-top">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="mini-orb" id="miniOrb"><canvas id="orbMini"></canvas></span>
+          <span class="model-chip"><span class="pdot"></span><span id="modelChipName">Model</span></span>
         </div>
+        <div class="top-right">
+          <span class="mem-meta">Memory: last <b>7</b> · <b id="msgCount">0</b> stored</span>
+          <span class="status-pill"><span class="dot"></span> Connected</span>
+        </div>
+      </div>
 
-        <div class="composer">
-          <div class="composer-inner">
-            <textarea id="userMessage" rows="1" placeholder="Ask anything…  (Enter to send, Shift+Enter for newline)"></textarea>
+      <div id="chatScroll" class="chat-scroll">
+        <!-- empty state injected by renderChat() -->
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-row">
+            <textarea id="userMessage" rows="1" placeholder="Ask me anything…  (Enter to send, Shift+Enter for newline)"></textarea>
             <button id="sendBtn" class="send-btn" title="Send">➤</button>
           </div>
           <div class="composer-foot">
+            <span class="tech-pill">✨ <span id="techPillName">Technique</span></span>
             <details id="sysDetails" style="display:none;">
-              <summary>System prompt used for the last message</summary>
+              <summary>System prompt used</summary>
               <pre id="sysPromptText"></pre>
             </details>
-            <span id="footSpacer"></span>
-            <span>Groq · OpenAI-compatible</span>
+            <span id="footRight">Groq · OpenAI-compatible</span>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </main>
   </div>
 
   <script>
@@ -308,7 +339,139 @@
       custom: "You write the system prompt yourself.",
     };
 
+    // Welcome / empty state — Siri-style orb, greeting, suggestion cards.
+    const EMPTY_HTML = `
+      <div class="empty">
+        <div class="orb-wrap">
+          <canvas id="orbCanvas" class="orb-canvas"></canvas>
+        </div>
+        <h1 class="greet-1">Hello, human</h1>
+        <h2 class="greet-2">How can I assist you today?</h2>
+      </div>`;
+
     const $ = (id) => document.getElementById(id);
+
+    // ---------- Particle orb (crystal dotted sphere) ----------
+    // A canvas sphere built from points on a Fibonacci lattice, shaded like a
+    // faceted crystal (bright white front glints + a glassy specular highlight).
+    // It rotates slowly and calmly at all times. The thinking/energized state
+    // is intentionally disabled, so setThinking() is a no-op kept only so the
+    // call sites stay tidy; the orb never speeds up or shimmers on a request.
+    let orbEnergy = 0;        // current 0..1 (eased, shared by all orbs)
+    let orbTarget = 0;        // target  0..1 — kept at 0 (always idle)
+    function setThinking() { /* thinking animation disabled */ }
+
+    const orbLoops = {};      // canvasId -> requestAnimationFrame handle
+    function stopOrb(id) { if (orbLoops[id]) { cancelAnimationFrame(orbLoops[id]); delete orbLoops[id]; } }
+
+    function startOrb(id) {
+      const canvas = document.getElementById(id);
+      if (!canvas) return;
+      stopOrb(id);
+      const ctx = canvas.getContext("2d");
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const s = canvas.clientWidth || 180;
+      canvas.width = s * dpr;
+      canvas.height = s * dpr;
+
+      // Distribute N points evenly on a unit sphere (Fibonacci sphere).
+      // Fewer points for the tiny header orb so it stays crisp and cheap.
+      const N = s < 80 ? 220 : 560;
+      const pts = [];
+      const inc = Math.PI * (3 - Math.sqrt(5)); // golden angle
+      for (let i = 0; i < N; i++) {
+        const y = 1 - (i / (N - 1)) * 2;        // 1 .. -1
+        const r = Math.sqrt(Math.max(0, 1 - y * y));
+        const phi = i * inc;
+        pts.push({
+          x: Math.cos(phi) * r, y: y, z: Math.sin(phi) * r,
+          seed: Math.random() * Math.PI * 2,
+          hue: 250 + Math.random() * 35,          // per-dot purple hue
+          lum: Math.random() * 16,                // lightness variation
+          facet: Math.random() < 0.16,            // some dots are bright crystal glints
+        });
+      }
+
+      let angleY = Math.random() * 6, t = 0;
+      const angleX = -0.42; // slight tilt so we read it as a globe from above
+
+      function frame() {
+        t += 0.016;
+        orbEnergy += (orbTarget - orbEnergy) * 0.05;
+        const e = orbEnergy;
+
+        const W = canvas.width, H = canvas.height;
+        const cx = W / 2, cy = H / 2;
+        const baseR = W * 0.33;
+        const breathe = 1 + Math.sin(t * (1.1 + e * 3.2)) * (0.03 + e * 0.05);
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Cool glowing core behind the dots.
+        const gR = baseR * 1.5 * breathe;
+        const glow = ctx.createRadialGradient(cx, cy - baseR * 0.06, 0, cx, cy, gR);
+        glow.addColorStop(0, `rgba(186,162,255,${0.40 + 0.24 * e})`);
+        glow.addColorStop(0.45, `rgba(130,96,240,${0.15 + 0.12 * e})`);
+        glow.addColorStop(1, "rgba(120,90,235,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(cx, cy, gR, 0, Math.PI * 2); ctx.fill();
+
+        angleY += 0.0028 + e * 0.022;
+        const cY = Math.cos(angleY), sY = Math.sin(angleY);
+        const cX = Math.cos(angleX), sX = Math.sin(angleX);
+        const fov = 3.4;
+
+        ctx.globalCompositeOperation = "lighter";
+        for (const p of pts) {
+          // When thinking, dots oscillate radially (the "processing" shimmer).
+          const osc = 1 + e * Math.sin(t * 3.4 + p.seed) * 0.10;
+          const x = p.x * osc, y = p.y * osc, z = p.z * osc;
+
+          const x1 = x * cY - z * sY;
+          const z1 = x * sY + z * cY;
+          const y1 = y * cX - z1 * sX;
+          const z2 = y * sX + z1 * cX;
+
+          const scale = fov / (fov - z2);
+          const sx = cx + x1 * baseR * scale * breathe;
+          const sy = cy + y1 * baseR * scale * breathe;
+
+          const depth = (z2 + 1) / 2;             // 0 back .. 1 front
+          const twinkle = e * 0.3 * Math.sin(t * 6 + p.seed);
+
+          if (p.facet) {
+            // Crystal glint: near-white, larger, with a soft halo near the front.
+            const radius = (0.8 + depth * 2.4) * dpr * (1 + e * 0.4);
+            const a = Math.min(1, (0.1 + depth * depth * 0.95) + twinkle);
+            ctx.beginPath();
+            ctx.fillStyle = `hsla(${262 - e * 10}, 70%, ${82 + depth * 16}%, ${a})`;
+            ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            const radius = (0.5 + depth * 1.8) * dpr * (1 + e * 0.32);
+            const alpha = 0.1 + depth * 0.82;
+            const light = 48 + depth * 34 + p.lum;  // shade of purple → white at front
+            ctx.beginPath();
+            ctx.fillStyle = `hsla(${p.hue - e * 8}, 90%, ${light}%, ${Math.min(1, alpha + twinkle)})`;
+            ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Glassy specular highlight (upper-left) — the crystal sheen.
+        const hx = cx - baseR * 0.42, hy = cy - baseR * 0.5;
+        const spec = ctx.createRadialGradient(hx, hy, 0, hx, hy, baseR * 0.7);
+        spec.addColorStop(0, `rgba(255,255,255,${0.5 + e * 0.2})`);
+        spec.addColorStop(0.5, "rgba(255,255,255,0.08)");
+        spec.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = spec;
+        ctx.beginPath(); ctx.arc(hx, hy, baseR * 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+
+        orbLoops[id] = requestAnimationFrame(frame);
+      }
+      frame();
+    }
 
     // ---------- Load dropdowns ----------
     async function loadModels() {
@@ -316,6 +479,7 @@
       const data = await res.json();
       const sel = $("textModel");
       data.text_models.forEach(m => sel.add(new Option(m, m)));
+      updateModelChip();
     }
     async function loadTechniques() {
       const res = await fetch("/api/techniques");
@@ -331,21 +495,30 @@
       const t = techSel.value;
       $("customWrap").style.display = t === "custom" ? "block" : "none";
       $("techHint").textContent = techniqueHints[t] || "";
+      const label = techSel.options[techSel.selectedIndex];
+      $("techPillName").textContent = label ? label.text : "Technique";
     }
+
+    const modelSel = $("textModel");
+    modelSel.addEventListener("change", updateModelChip);
+    function updateModelChip() { $("modelChipName").textContent = modelSel.value || "Model"; }
 
     // ---------- Render chat ----------
     function renderChat() {
       const box = $("chatScroll");
       $("msgCount").textContent = history.length;
       if (history.length === 0) {
-        box.innerHTML = `
-          <div class="empty">
-            <div class="big">💬</div>
-            <p><strong>Start a conversation</strong></p>
-            <p>Pick a model and a prompt technique, then send a message.</p>
-          </div>`;
+        // Welcome screen: big orb shown, header mini-orb hidden.
+        $("miniOrb").classList.remove("show");
+        stopOrb("orbMini");
+        box.innerHTML = EMPTY_HTML;
+        startOrb("orbCanvas");
         return;
       }
+      // Conversation: big orb gone, persistent mini-orb in the header.
+      stopOrb("orbCanvas");
+      $("miniOrb").classList.add("show");
+      startOrb("orbMini");
       box.innerHTML = "";
       history.forEach(m => box.appendChild(bubble(m.role, m.content)));
       box.scrollTop = box.scrollHeight;
@@ -375,19 +548,28 @@
       const userMessage = input.value.trim();
       if (!userMessage) return;
 
+      const wasEmpty = history.length === 0;
       history.push({ role: "user", content: userMessage });
-      renderChat();
+
+      // The orb thinks on every message.
+      setThinking(true);
+
+      if (wasEmpty) {
+        // First message: keep the big welcome orb on screen and thinking
+        // while we wait; the conversation is revealed once the reply arrives.
+      } else {
+        renderChat();
+        // Placeholder assistant bubble while waiting.
+        const box = $("chatScroll");
+        const wait = bubble("assistant", "");
+        wait.querySelector(".bubble").innerHTML = '<span class="spinner"></span> Thinking…';
+        box.appendChild(wait);
+        box.scrollTop = box.scrollHeight;
+      }
+
       input.value = "";
       autoGrow(input);
       sendBtn.disabled = true;
-
-      // Placeholder assistant bubble while waiting.
-      const box = $("chatScroll");
-      const wait = bubble("assistant", "");
-      const waitText = wait.querySelector(".bubble");
-      waitText.innerHTML = '<span class="spinner"></span> Thinking…';
-      box.appendChild(wait);
-      box.scrollTop = box.scrollHeight;
 
       try {
         // Send everything EXCEPT the just-added user message as history,
@@ -408,6 +590,7 @@
         if (!res.ok) throw new Error(data.detail || "Request failed");
 
         history.push({ role: "assistant", content: data.response });
+        setThinking(false);
         renderChat();
 
         $("sysDetails").style.display = "block";
@@ -415,6 +598,7 @@
       } catch (e) {
         // Drop the optimistic user message so memory stays clean.
         history.pop();
+        setThinking(false);
         renderChat();
         $("chatScroll").appendChild(bubble("error", e.message, "error"));
         $("chatScroll").scrollTop = $("chatScroll").scrollHeight;
@@ -430,9 +614,9 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
     ta.addEventListener("input", () => autoGrow(ta));
-    function autoGrow(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 160) + "px"; }
+    function autoGrow(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 140) + "px"; }
 
-    // ---------- Reset ----------
+    // ---------- Reset (New chat) ----------
     $("resetBtn").addEventListener("click", () => {
       history = [];
       renderChat();
