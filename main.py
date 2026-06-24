@@ -1,19 +1,17 @@
 """
-LLM & Image Generation Playground
------------------------------------
+LLM Chat Playground
+-------------------
 A FastAPI backend that exposes:
   - /api/chat       -> chat completions via Groq
   - /api/models     -> list of selectable Groq text models
-  - /api/generate-image -> image generation via Google Gemini
+  - /api/techniques -> list of selectable prompt-engineering techniques
   - /              -> serves the single-page front-end
 
 Environment variables required:
   GROQ_API_KEY    -> from https://console.groq.com
-  GEMINI_API_KEY  -> from https://aistudio.google.com/app/apikey
 """
 
 import os
-import base64
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -23,19 +21,18 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from groq import Groq
-from google import genai
-from google.genai import types
+
+from prompts import TECHNIQUES, VALID_TECHNIQUE_IDS, build_system_prompt
 
 load_dotenv()
 
-app = FastAPI(title="LLM & Image Generation Playground")
+app = FastAPI(title="LLM Chat Playground")
 
 # ----------------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------------
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Selectable Groq text models shown in the dropdown.
 # These are current production / preview chat models on GroqCloud.
@@ -50,17 +47,8 @@ GROQ_TEXT_MODELS: List[str] = [
     "gemma2-9b-it",
 ]
 
-# Selectable Gemini image generation models shown in the dropdown.
-# gemini-3-flash-preview (Nano Banana) is the one available on the free tier.
-GEMINI_IMAGE_MODELS: List[str] = [
-    "gemini-3-flash-preview",
-    "gemini-3.1-flash-image-preview",
-    "gemini-3-pro-image-preview",
-]
-
-# Lazily-created clients so the server can still boot without keys set.
+# Lazily-created client so the server can still boot without a key set.
 _groq_client: Optional[Groq] = None
-_gemini_client: Optional[genai.Client] = None
 
 
 def get_groq_client() -> Groq:
@@ -75,43 +63,28 @@ def get_groq_client() -> Groq:
     return _groq_client
 
 
-def get_gemini_client() -> genai.Client:
-    global _gemini_client
-    if not GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="GEMINI_API_KEY is not set. Add it to your .env file.",
-        )
-    if _gemini_client is None:
-        _gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-    return _gemini_client
-
-
 # ----------------------------------------------------------------------------
 # Request / response schemas
 # ----------------------------------------------------------------------------
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     model: str
-    system_prompt: str = ""
+    technique: str = "zero_shot"
+    custom_system_prompt: str = ""
     user_message: str
+    history: List[ChatMessage] = []
     temperature: float = 0.7
 
 
 class ChatResponse(BaseModel):
     response: str
     model: str
-
-
-class ImageRequest(BaseModel):
-    model: str
-    prompt: str
-
-
-class ImageResponse(BaseModel):
-    image_base64: str
-    mime_type: str
-    model: str
+    system_prompt: str
 
 
 # ----------------------------------------------------------------------------
@@ -120,24 +93,41 @@ class ImageResponse(BaseModel):
 
 @app.get("/api/models")
 def list_models():
-    """Return the model lists used to populate the two dropdowns."""
-    return {
-        "text_models": GROQ_TEXT_MODELS,
-        "image_models": GEMINI_IMAGE_MODELS,
-    }
+    """Return the model list used to populate the dropdown."""
+    return {"text_models": GROQ_TEXT_MODELS}
+
+
+@app.get("/api/techniques")
+def list_techniques():
+    """Return the prompt-engineering techniques used to fill the dropdown."""
+    return {"techniques": TECHNIQUES}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    """Send a chat completion request to Groq and return the reply text."""
+    """Send a chat completion request to Groq and return the reply text.
+
+    The system prompt is built from the chosen prompt-engineering technique
+    (see prompts.py); prior turns supplied in `history` give the model
+    short-term memory of the conversation.
+    """
     if not req.user_message.strip():
         raise HTTPException(status_code=400, detail="User message cannot be empty.")
 
+    if req.technique not in VALID_TECHNIQUE_IDS:
+        raise HTTPException(
+            status_code=400, detail=f"Unknown technique: {req.technique}"
+        )
+
     client = get_groq_client()
 
-    messages = []
-    if req.system_prompt.strip():
-        messages.append({"role": "system", "content": req.system_prompt})
+    system_prompt = build_system_prompt(req.technique, req.custom_system_prompt)
+
+    messages = [{"role": "system", "content": system_prompt}]
+    # Replay prior turns so the model has short-term memory of the conversation.
+    for msg in req.history:
+        if msg.role in ("user", "assistant") and msg.content.strip():
+            messages.append({"role": msg.role, "content": msg.content})
     messages.append({"role": "user", "content": req.user_message})
 
     try:
@@ -150,49 +140,7 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=502, detail=f"Groq error: {e}")
 
     text = completion.choices[0].message.content or ""
-    return ChatResponse(response=text, model=req.model)
-
-
-@app.post("/api/generate-image", response_model=ImageResponse)
-def generate_image(req: ImageRequest):
-    """Generate an image with Gemini and return it as base64."""
-    if not req.prompt.strip():
-        raise HTTPException(status_code=400, detail="Image prompt cannot be empty.")
-
-    client = get_gemini_client()
-
-    try:
-        result = client.models.generate_content(
-            model=req.model,
-            contents=req.prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            ),
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gemini error: {e}")
-
-    # Walk the response parts and pull out the first inline image.
-    for candidate in result.candidates or []:
-        for part in candidate.content.parts or []:
-            if getattr(part, "inline_data", None) and part.inline_data.data:
-                raw = part.inline_data.data
-                # SDK may hand back bytes or an already-encoded string.
-                if isinstance(raw, bytes):
-                    b64 = base64.b64encode(raw).decode("utf-8")
-                else:
-                    b64 = raw
-                return ImageResponse(
-                    image_base64=b64,
-                    mime_type=part.inline_data.mime_type or "image/png",
-                    model=req.model,
-                )
-
-    raise HTTPException(
-        status_code=502,
-        detail="No image was returned. The model may have refused the prompt "
-               "or the free-tier quota was exceeded.",
-    )
+    return ChatResponse(response=text, model=req.model, system_prompt=system_prompt)
 
 
 # ----------------------------------------------------------------------------
